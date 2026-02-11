@@ -115,6 +115,21 @@
     box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.3);
 }
 
+/* Fix Placeholder Text Visibility */
+.stTextInput>div>div>input::placeholder,
+.stNumberInput>div>div>input::placeholder {
+    color: #95A5A6 !important;
+    opacity: 1;
+    /* Firefox */
+}
+
+/* Fix Input Text Visibility */
+.stTextInput input,
+.stSelectbox select,
+.stNumberInput input {
+    color: #E0E0E0 !important;
+}
+
 /* Expander styling */
 .streamlit-expanderHeader {
     background: linear-gradient(135deg, #1B2838 0%, #2C3E50 100%);
