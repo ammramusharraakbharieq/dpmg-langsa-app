@@ -247,117 +247,120 @@ if not df.empty:
                             st.rerun()
                         else:
                             st.error(f"❌ Gagal: {result.get('error', result.get('message'))}")
-    
-    with tab_add:
-        st.subheader("➕ Tambah Data KADUS Baru")
-        
-        st.markdown("""
-        <div style="padding: 10px; background: rgba(46, 204, 113, 0.1); border-radius: 8px; border-left: 3px solid #2ECC71; margin-bottom: 20px;">
-            <p style="color: #E0E0E0; margin: 0;"><strong>ℹ️ Tambah KADUS</strong><br>
-            <span style="color: #BDC3C7;">Gunakan fitur ini untuk menambahkan Kepala Dusun (KADUS) yang belum terdata.</span></p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Select Desa
-        add_desa = st.selectbox("🔍 Pilih Desa", desa_list, key="add_desa_select")
-        
-        if add_desa:
-            desa_df = df[df['DESA'].astype(str) == add_desa]
-            kec = str(desa_df.iloc[0]['KECAMATAN']) if not desa_df.empty else ''
-            kode_desa = str(desa_df.iloc[0]['NO_DESA']) if not desa_df.empty and pd.notna(desa_df.iloc[0]['NO_DESA']) else ''
+
+    # Indent ADD and DELETE tabs to be under user_is_admin check
+    if user_is_admin:
+        with tab_add:
+            st.subheader("➕ Tambah Data KADUS Baru")
             
-            # Get max NO_URUT (convert to numeric to handle mixed int/str types)
-            max_urut = pd.to_numeric(desa_df['NO_URUT'], errors='coerce').max() if not desa_df.empty else 0
-            next_urut = int(max_urut) + 1 if pd.notna(max_urut) else 1
+            st.markdown("""
+            <div style="padding: 10px; background: rgba(46, 204, 113, 0.1); border-radius: 8px; border-left: 3px solid #2ECC71; margin-bottom: 20px;">
+                <p style="color: #E0E0E0; margin: 0;"><strong>ℹ️ Tambah KADUS</strong><br>
+                <span style="color: #BDC3C7;">Gunakan fitur ini untuk menambahkan Kepala Dusun (KADUS) yang belum terdata.</span></p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            st.markdown(f"**Kecamatan:** {kec} | **Desa:** {add_desa}")
-            st.markdown(f"**No Urut berikutnya:** {next_urut}")
+            # Select Desa
+            desa_list = sorted([str(x) for x in df['DESA'].dropna().unique().tolist()])
+            add_desa = st.selectbox("🔍 Pilih Desa", desa_list, key="add_desa_select")
             
-            st.markdown("---")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                add_nama = st.text_input("👤 Nama Lengkap KADUS", key="add_nama")
-                add_nik = st.text_input("🆔 NIK", key="add_nik")
-            
-            with col2:
-                add_jk = st.selectbox("⚧ Jenis Kelamin", options=['L', 'P'],
-                                     format_func=lambda x: 'Laki-laki' if x == 'L' else 'Perempuan',
-                                     key="add_jk")
-                add_jabatan = st.text_input("🏛️ Jabatan (contoh: KADUS I, KADUS LORONG)", 
-                                           value="KADUS", key="add_jabatan")
-                add_hp = st.text_input("📱 No HP", key="add_hp")
-            
-            if st.button("➕ Tambah KADUS", type="primary"):
-                if add_nama and add_jabatan:
-                    kadus_data = {
-                        'KECAMATAN': kec,
-                        'DESA': add_desa,
-                        'NO_DESA': kode_desa,
-                        'NO_URUT': next_urut,
-                        'NAMA_LENGKAP': add_nama,
-                        'NIK': add_nik,
-                        'JENIS_KELAMIN': add_jk,
-                        'JABATAN': add_jabatan,
-                        'NO_HP': add_hp
-                    }
-                    result = add_kadus(kadus_data)
-                    if result.get('success'):
-                        st.success("✅ KADUS berhasil ditambahkan!")
-                        st.rerun()
-                    else:
-                        st.error(f"❌ Gagal: {result.get('error', result.get('message'))}")
-                else:
-                    st.error("❌ Nama dan Jabatan wajib diisi")
-    
-    with tab_delete:
-        st.subheader("🗑️ Hapus Data KADUS")
-        
-        st.markdown("""
-        <div style="padding: 10px; background: rgba(231, 76, 60, 0.1); border-radius: 8px; border-left: 3px solid #E74C3C; margin-bottom: 20px;">
-            <p style="color: #E0E0E0; margin: 0;"><strong>⚠️ Perhatian:</strong><br>
-            <span style="color: #BDC3C7;">Fitur ini hanya untuk menghapus data KADUS (Kepala Dusun). Data KEPALA DESA dan perangkat inti tidak dapat dihapus.</span></p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Select Desa
-        del_desa = st.selectbox("🔍 Pilih Desa", desa_list, key="del_desa_select")
-        
-        if del_desa:
-            desa_df = df[df['DESA'].astype(str) == del_desa]
-            
-            # Filter only KADUS
-            kadus_df = desa_df[desa_df['JABATAN'].str.contains('KADUS', case=False, na=False)]
-            
-            if not kadus_df.empty:
-                st.markdown(f"**Daftar KADUS di {del_desa}:**")
+            if add_desa:
+                desa_df = df[df['DESA'].astype(str) == add_desa]
+                kec = str(desa_df.iloc[0]['KECAMATAN']) if not desa_df.empty else ''
+                kode_desa = str(desa_df.iloc[0]['NO_DESA']) if not desa_df.empty and pd.notna(desa_df.iloc[0]['NO_DESA']) else ''
                 
-                # Display KADUS list
-                for idx, row in kadus_df.iterrows():
-                    no_urut = row['NO_URUT']
-                    nama = str(row['NAMA_LENGKAP']) if pd.notna(row['NAMA_LENGKAP']) else '-'
-                    jabatan = str(row['JABATAN']) if pd.notna(row['JABATAN']) else '-'
+                # Get max NO_URUT (convert to numeric to handle mixed int/str types)
+                max_urut = pd.to_numeric(desa_df['NO_URUT'], errors='coerce').max() if not desa_df.empty else 0
+                next_urut = int(max_urut) + 1 if pd.notna(max_urut) else 1
+                
+                st.markdown(f"**Kecamatan:** {kec} | **Desa:** {add_desa}")
+                st.markdown(f"**No Urut berikutnya:** {next_urut}")
+                
+                st.markdown("---")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    add_nama = st.text_input("👤 Nama Lengkap KADUS", key="add_nama")
+                    add_nik = st.text_input("🆔 NIK", key="add_nik")
+                
+                with col2:
+                    add_jk = st.selectbox("⚧ Jenis Kelamin", options=['L', 'P'],
+                                         format_func=lambda x: 'Laki-laki' if x == 'L' else 'Perempuan',
+                                         key="add_jk")
+                    add_jabatan = st.text_input("🏛️ Jabatan (contoh: KADUS I, KADUS LORONG)", 
+                                               value="KADUS", key="add_jabatan")
+                    add_hp = st.text_input("📱 No HP", key="add_hp")
+                
+                if st.button("➕ Tambah KADUS", type="primary"):
+                    if add_nama and add_jabatan:
+                        kadus_data = {
+                            'KECAMATAN': kec,
+                            'DESA': add_desa,
+                            'NO_DESA': kode_desa,
+                            'NO_URUT': next_urut,
+                            'NAMA_LENGKAP': add_nama,
+                            'NIK': add_nik,
+                            'JENIS_KELAMIN': add_jk,
+                            'JABATAN': add_jabatan,
+                            'NO_HP': add_hp
+                        }
+                        result = add_kadus(kadus_data)
+                        if result.get('success'):
+                            st.success("✅ KADUS berhasil ditambahkan!")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ Gagal: {result.get('error', result.get('message'))}")
+                    else:
+                        st.error("❌ Nama dan Jabatan wajib diisi")
+        
+        with tab_delete:
+            st.subheader("🗑️ Hapus Data KADUS")
+            
+            st.markdown("""
+            <div style="padding: 10px; background: rgba(231, 76, 60, 0.1); border-radius: 8px; border-left: 3px solid #E74C3C; margin-bottom: 20px;">
+                <p style="color: #E0E0E0; margin: 0;"><strong>⚠️ Perhatian:</strong><br>
+                <span style="color: #BDC3C7;">Fitur ini hanya untuk menghapus data KADUS (Kepala Dusun). Data KEPALA DESA dan perangkat inti tidak dapat dihapus.</span></p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Select Desa
+            del_desa = st.selectbox("🔍 Pilih Desa", desa_list, key="del_desa_select")
+            
+            if del_desa:
+                desa_df = df[df['DESA'].astype(str) == del_desa]
+                
+                # Filter only KADUS
+                kadus_df = desa_df[desa_df['JABATAN'].str.contains('KADUS', case=False, na=False)]
+                
+                if not kadus_df.empty:
+                    st.markdown(f"**Daftar KADUS di {del_desa}:**")
                     
-                    with st.expander(f"**{no_urut}. {nama}** - {jabatan}"):
-                        st.write(f"👤 Nama: **{nama}**")
-                        st.write(f"🏛️ Jabatan: **{jabatan}**")
-                        st.write(f"📱 No HP: **{row.get('NO_HP', '-')}**")
+                    # Display KADUS list
+                    for idx, row in kadus_df.iterrows():
+                        no_urut = row['NO_URUT']
+                        nama = str(row['NAMA_LENGKAP']) if pd.notna(row['NAMA_LENGKAP']) else '-'
+                        jabatan = str(row['JABATAN']) if pd.notna(row['JABATAN']) else '-'
                         
-                        # Confirmation checkbox
-                        confirm_key = f"confirm_del_{del_desa}_{no_urut}"
-                        confirm = st.checkbox(f"Saya yakin ingin menghapus {nama}", key=confirm_key)
-                        
-                        if confirm:
-                            if st.button(f"🗑️ Hapus {nama}", type="primary", key=f"btn_del_{del_desa}_{no_urut}"):
-                                result = delete_kadus(del_desa, no_urut)
-                                if result.get('success'):
-                                    st.success("✅ KADUS berhasil dihapus!")
-                                    st.rerun()
-                                else:
-                                    st.error(f"❌ Gagal: {result.get('error', result.get('message'))}")
-            else:
-                st.info("ℹ️ Tidak ada KADUS di desa ini")
+                        with st.expander(f"**{no_urut}. {nama}** - {jabatan}"):
+                            st.write(f"👤 Nama: **{nama}**")
+                            st.write(f"🏛️ Jabatan: **{jabatan}**")
+                            st.write(f"📱 No HP: **{row.get('NO_HP', '-')}**")
+                            
+                            # Confirmation checkbox
+                            confirm_key = f"confirm_del_{del_desa}_{no_urut}"
+                            confirm = st.checkbox(f"Saya yakin ingin menghapus {nama}", key=confirm_key)
+                            
+                            if confirm:
+                                if st.button(f"🗑️ Hapus {nama}", type="primary", key=f"btn_del_{del_desa}_{no_urut}"):
+                                    result = delete_kadus(del_desa, no_urut)
+                                    if result.get('success'):
+                                        st.success("✅ KADUS berhasil dihapus!")
+                                        st.rerun()
+                                    else:
+                                        st.error(f"❌ Gagal: {result.get('error', result.get('message'))}")
+                else:
+                    st.info("ℹ️ Tidak ada KADUS di desa ini")
 
 else:
     st.warning("⚠️ Tidak dapat memuat data. Pastikan file Excel tersedia.")
